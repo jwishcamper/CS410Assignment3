@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.Scanner;
 
 import javax.swing.JFileChooser;
@@ -28,17 +29,17 @@ import javax.swing.JTextPane;
  * 
  * Code Smells:
  * 1) actionPerformed method too long - "Bloater". 
- * 2) Bad naming conventions. Very hard to understand what variables are
- * 3) SimpleNotePad constructor too long and duplicate code
- * 4) Extra code that does nothing in "paste"
+ * 2) Bad naming conventions. Very hard to understand what variables are 
+ * 3) SimpleNotePad constructor too long and has duplicate code
+ * 4) Extra code that does nothing in "paste" section of actionPerformed
  * 5) Extra undo function that is not implemented
  * 
  * Fixes:
  * 1) Moved print and save logic from actionPerformed to their own methods
  * 2) Renamed all variables to more properly reflect what they do
  * 3) Created a new setupMenu() method and several helper functions to reduce duplicate code and shrink SimpleNotePad constructor
- * 4) Removed extra pointless code in "paste"
- * 5) Removed undo function and menu item
+ * 4) Removed extra pointless code in "paste" 
+ * 5) Removed undo menu item and extra code
  * More misc. changes/fixes:
  * Commented code
  * Minor changes in print/save methods
@@ -117,14 +118,32 @@ public class SimpleNotePad extends JFrame implements ActionListener{
     	fileMenu.add(menuItem);
         fileMenu.addSeparator();
     }
-    //helper function to move all menu items in recentSubitems down 1 spot on the list
-    private void fixRecentFiles() {
-    	for(int i = 4;i>0;i--) {
-    		if(recentFiles[i-1]!=null) {
-    			recentFiles[i]=recentFiles[i-1];
-    	    	recentSubitems[i].setText(recentFiles[i].getName()); 
-    	    }
-    	}	
+    //helper function to properly rearrange items on recent list
+    private void fixRecentFiles(File f) {
+    	//if the file is already in the list
+    	if(Arrays.stream(recentFiles).anyMatch(f::equals)) {
+			int index = -1;
+			for(int i = 0;i<recentFiles.length;i++) {
+				if(recentFiles[i]==f)
+					index = i;
+			}
+			//now move everything before or equal to index down in array, leave everything after index
+			for(int i =index;i>0;i--) {
+				recentFiles[i]=recentFiles[i-1];
+    	    	recentSubitems[i].setText(recentFiles[i].getName());
+			}
+		}
+    	//if new file not in list
+    	else {
+	    	for(int i = 4;i>0;i--) {
+	    		if(recentFiles[i-1]!=null) {
+	    			recentFiles[i]=recentFiles[i-1];
+	    	    	recentSubitems[i].setText(recentFiles[i].getName());
+	    	    }
+	    	}	
+    	}
+    	recentFiles[0]=f;
+    	recentSubitems[0].setText(recentFiles[0].getName());
     }
     //opens the file passed as a parameter
     private void openFile(File f) {
@@ -141,10 +160,8 @@ public class SimpleNotePad extends JFrame implements ActionListener{
     //opens the selected file from recent list and fixes the list appropriately
     private void openRecent(File f) {
     	if(f!=null) {
-        	openFile(f);
-        	fixRecentFiles();
-        	recentFiles[0] = f;
-	    	recentSubitems[0].setText(recentFiles[0].getName());
+    		openFile(f);
+	        fixRecentFiles(f);
     	}
     }
     
@@ -189,10 +206,9 @@ public class SimpleNotePad extends JFrame implements ActionListener{
     //opens dialog box then opens file if one is chosen
     private void open() {
     	if (fileChooser.showOpenDialog(null)==JFileChooser.APPROVE_OPTION) {
-			fixRecentFiles();
-			recentFiles[0] = fileChooser.getSelectedFile();
-	    	recentSubitems[0].setText(recentFiles[0].getName());
-			openFile(recentFiles[0]);
+    		File f = fileChooser.getSelectedFile();
+    		openFile(f);
+	        fixRecentFiles(f);		
 		}
     }
     
@@ -207,6 +223,7 @@ public class SimpleNotePad extends JFrame implements ActionListener{
 	            out.println(textArea.getText());
 	            JOptionPane.showMessageDialog(null, "File is saved successfully...");
 	            out.close();
+	            fixRecentFiles(fileToWrite);
 	        } catch (IOException ex) { }
         }
     }
